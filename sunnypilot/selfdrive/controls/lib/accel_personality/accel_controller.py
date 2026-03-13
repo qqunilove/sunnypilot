@@ -22,19 +22,19 @@ MAX_ACCEL_PROFILES = {
 MAX_ACCEL_BREAKPOINTS =       [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
 
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [-0.0021, -0.5600, -0.56, -0.10, -0.26, -0.76], #corolla only
-  AccelPersonality.normal:    [-0.0022, -0.5800, -0.58, -0.11, -0.30, -0.81], #corolla only
-  AccelPersonality.sport:     [-0.0023, -0.6000, -0.60, -0.12, -0.34, -0.86], #corolla only
+  AccelPersonality.eco:       [-0.0021, -0.5600, -0.56, -0.01, -0.10, -0.76], #corolla only
+  AccelPersonality.normal:    [-0.0030, -0.5800, -0.58, -0.02, -0.11, -0.81], #corolla only
+  AccelPersonality.sport:     [-0.0040, -0.6000, -0.60, -0.03, -0.12, -0.86], #corolla only
   #AccelPersonality.eco:       [-0.10, -0.50, -0.32, -0.32, -1.00], #cross
   #AccelPersonality.normal:    [-0.20, -0.55, -0.36, -0.36, -1.10], #cross
   #AccelPersonality.sport:     [-0.30, -0.60, -0.40, -0.40, -1.20], #cross
 }
 #MIN_ACCEL_BREAKPOINTS =       [0.0,   2.0,   5.0,   16.0,  40.0]
-MIN_ACCEL_BREAKPOINTS =       [1.0,     2.6,    4.4,    10.0,  16.0,  22.0] #corolla only
+MIN_ACCEL_BREAKPOINTS =       [1.5,     2.0,    4.4,    11.0,  16.0,  25.0] #corolla only
 
-ACCEL_ALPHA_BASE = 0.30   # responsive for small corrections
-ACCEL_ALPHA_MAX = 0.85    # smooth for big transitions
-ACCEL_ALPHA_SCALE = 0.8   # How fast alpha grows with error
+ACCEL_ALPHA_BASE = 0.80   # responsive for small corrections
+ACCEL_ALPHA_MAX = 0.95    # smooth for big transitions
+ACCEL_ALPHA_SCALE = 0.9   # How fast alpha grows with error
 
 DECEL_ALPHA_BASE = 0.35   # smooth even for small changes
 DECEL_ALPHA_MIN = 0.15    # responsive

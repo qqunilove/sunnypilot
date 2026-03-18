@@ -21,28 +21,22 @@ MAX_ACCEL_PROFILES = {
 }
 MAX_ACCEL_BREAKPOINTS =       [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
 
+# Decel profiles
+MIN_ACCEL_BREAKPOINTS =       [0.0,   1.0,   2.0,   4.0,   7.0,   11.0,  16.0,  22.0,  25.0]
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [-0.0021, -0.5600, -0.56, -0.01, -0.10, -0.76], #corolla only
-  AccelPersonality.normal:    [-0.0030, -0.5800, -0.58, -0.02, -0.11, -0.81], #corolla only
-  AccelPersonality.sport:     [-0.0040, -0.6000, -0.60, -0.03, -0.12, -0.86], #corolla only
-  #AccelPersonality.eco:       [-0.10, -0.50, -0.32, -0.32, -1.00], #cross
-  #AccelPersonality.normal:    [-0.20, -0.55, -0.36, -0.36, -1.10], #cross
-  #AccelPersonality.sport:     [-0.30, -0.60, -0.40, -0.40, -1.20], #cross
+  AccelPersonality.eco:       [-0.001,-0.001,-0.10, -0.22, -0.30, -0.36, -0.42, -0.48, -0.52],
+  AccelPersonality.normal:    [-0.002,-0.002,-0.13, -0.26, -0.35, -0.42, -0.48, -0.55, -0.60],
+  AccelPersonality.sport:     [-0.003,-0.003,-0.16, -0.30, -0.40, -0.48, -0.55, -0.62, -0.68],
 }
-#MIN_ACCEL_BREAKPOINTS =       [0.0,   2.0,   5.0,   16.0,  40.0]
-MIN_ACCEL_BREAKPOINTS =       [1.5,     2.0,    4.4,    11.0,  16.0,  25.0] #corolla only
 
-ACCEL_ALPHA_BASE = 0.80   # responsive for small corrections
-ACCEL_ALPHA_MAX = 0.95    # smooth for big transitions
-ACCEL_ALPHA_SCALE = 0.9   # How fast alpha grows with error
-
-DECEL_ALPHA_BASE = 0.35   # smooth even for small changes
-DECEL_ALPHA_MIN = 0.15    # responsive
-DECEL_ALPHA_SCALE = -1.5  # decel gets more responsive as error grows
-
-MAX_DECEL_INCREASE_RATE = 0.5  # slow brake onset for coast feel (m/s² per second)
-MAX_DECEL_DECREASE_RATE = 0.8  # faster brake release (m/s² per second)
-
+ACCEL_ALPHA_BASE = 0.80
+ACCEL_ALPHA_MAX  = 0.95
+ACCEL_ALPHA_SCALE = 0.9
+DECEL_ALPHA_BASE  = 0.68
+DECEL_ALPHA_MIN   = 0.50
+DECEL_ALPHA_SCALE = -0.4
+MAX_DECEL_INCREASE_RATE = 0.10   # m/s³
+MAX_DECEL_DECREASE_RATE = 0.40   # m/s³
 
 _MIN_MAX_GAP = 0.05  # m/s²
 
@@ -79,7 +73,7 @@ class AccelPersonalityController:
     current = self._accel_personality
     idx = ACCEL_PERSONALITY_OPTIONS.index(current) if current in ACCEL_PERSONALITY_OPTIONS else 0
     next_personality = ACCEL_PERSONALITY_OPTIONS[(idx + 1) % len(ACCEL_PERSONALITY_OPTIONS)]
-    self.set_accel_personality(next_personality)  # BUG FIX: was self.set_personality()
+    self.set_accel_personality(next_personality)
     return int(next_personality)
 
   @staticmethod
@@ -132,7 +126,6 @@ class AccelPersonalityController:
   def toggle_enabled(self) -> bool:
     self.set_enabled(not self._enabled)
     return self._enabled
-
 
   def reset(self, personality: int = None):
     new_personality = personality if personality in ACCEL_PERSONALITY_OPTIONS else AccelPersonality.normal

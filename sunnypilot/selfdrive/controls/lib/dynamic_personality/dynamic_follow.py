@@ -12,28 +12,20 @@ from openpilot.common.params import Params
 
 LongPersonality = log.LongitudinalPersonality
 
-# Follow distance profiles mapped to LongPersonality
+FOLLOW_BREAKPOINTS =          [0.,   3.,   6.,   10.,  15.,  20.,  27.,  35.,  40.]
+
 FOLLOW_PROFILES = {
-  LongPersonality.relaxed:    [1.75, 1.75, 1.75, 1.80, 2.00],
-  LongPersonality.standard:   [1.45, 1.45, 1.45, 1.45, 1.55],
-  LongPersonality.aggressive: [1.10, 1.10, 1.10, 1.15, 1.20],
+  LongPersonality.relaxed:    [1.70, 1.72, 1.74, 1.76, 1.78, 1.82, 1.88, 1.95, 2.00],
+  LongPersonality.standard:   [1.38, 1.40, 1.42, 1.44, 1.46, 1.48, 1.50, 1.53, 1.55],
+  LongPersonality.aggressive: [1.05, 1.06, 1.08, 1.10, 1.12, 1.14, 1.17, 1.19, 1.20],
 }
 
-FOLLOW_BREAKPOINTS =          [0.,   10.,  20.,  30.,  40.,]
-
-#LongPersonality.relaxed:     [1.85, 1.85, 1.88, 1.92, 1.95, 1.98, 2.00, 2.00],
-#LongPersonality.standard:    [1.45, 1.45, 1.48, 1.52, 1.55, 1.58, 1.60, 1.60],
-#LongPersonality.aggressive:  [1.10, 1.10, 1.12, 1.15, 1.18, 1.22, 1.25, 1.25],
-#}
-#FOLLOW_BREAKPOINTS =           [0.0,   1.0,  4.0,  8.0, 16.0, 24.0, 36.0, 55.0]
-
-SMOOTHING_BASE = 0.85  # higher = smoother
-SMOOTHING_RANGE = 0.10 # smoothing at high speeds
-SMOOTHING_SPEED_THRESHOLD = 36.0  # m/s (~80 mph) for max smoothing
-SMOOTHING_ERROR_SCALE = 1.0  # How fast smoothing increases with error
-SMOOTHING_MAX = 0.98
+SMOOTHING_BASE            = 0.75
+SMOOTHING_RANGE           = 0.12
+SMOOTHING_SPEED_THRESHOLD = 36.0
+SMOOTHING_ERROR_SCALE     = 0.05
+SMOOTHING_MAX             = 0.97
 PERSONALITY_CHANGE_COOLDOWN_S = 2.0
-
 
 
 class FollowDistanceController:
@@ -93,7 +85,10 @@ class FollowDistanceController:
     if self.first_run:
       self.current_multiplier = target
       self.first_run = False
-      return self.current_multiplier
+      return float(self.current_multiplier)
+
+    if self.personality_change_cooldown > 0:
+      return float(self.current_multiplier)
 
     alpha = self._get_smoothing_factor(v_ego, target)
     self.current_multiplier = alpha * self.current_multiplier + (1.0 - alpha) * target
@@ -111,6 +106,6 @@ class FollowDistanceController:
     self.frame += 1
     if self.personality_change_cooldown > 0:
       self.personality_change_cooldown -= 1
-    if self.frame % int(1.0 / DT_MDL) == 0:
+    if self.frame % max(1, int(1.0 / DT_MDL)) == 0:
       self._personality = self.params.get('LongitudinalPersonality') or LongPersonality.standard
       self._enabled = self.params.get_bool('DynamicFollow')

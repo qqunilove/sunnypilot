@@ -20,8 +20,8 @@ FOLLOW_PROFILES = {
   LongPersonality.aggressive: [1.05, 1.06, 1.08, 1.10, 1.12, 1.14, 1.17, 1.19, 1.20],
 }
 
-SMOOTHING_BASE            = 0.75
-SMOOTHING_RANGE           = 0.12
+SMOOTHING_BASE            = 0.80
+SMOOTHING_RANGE           = 0.10
 SMOOTHING_SPEED_THRESHOLD = 36.0
 SMOOTHING_ERROR_SCALE     = 0.05
 SMOOTHING_MAX             = 0.97

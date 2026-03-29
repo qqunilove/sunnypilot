@@ -15,28 +15,28 @@ ACCEL_PERSONALITY_OPTIONS = [AccelPersonality.eco, AccelPersonality.normal, Acce
 
 # Acceleration Profiles
 MAX_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [1.80, 1.60, 1.36, 0.94, 0.64, 0.52, 0.32, 0.08, 0.06],
-  AccelPersonality.normal:    [2.00, 2.00, 1.66, 1.14, 0.82, 0.64, 0.38, 0.11, 0.07],
-  AccelPersonality.sport:     [2.00, 2.00, 2.00, 1.56, 1.16, 0.92, 0.54, 0.15, 0.09],
+  AccelPersonality.eco:       [2.10, 1.55, 1.10, 0.80, 0.62, 0.52, 0.32, 0.08, 0.06],
+  AccelPersonality.normal:    [2.35, 1.85, 1.30, 1.05, 0.82, 0.64, 0.38, 0.11, 0.07],
+  AccelPersonality.sport:     [2.50, 2.15, 1.60, 1.30, 1.00, 0.80, 0.50, 0.15, 0.09],
 }
 MAX_ACCEL_BREAKPOINTS =       [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
 
 # Decel profiles
-MIN_ACCEL_BREAKPOINTS =       [0.0,   1.0,   2.0,   4.0,   7.0,   11.0,  16.0,  22.0,  25.0]
+MIN_ACCEL_BREAKPOINTS =       [2.0,   4.0,  16.0,  22.0,  25.0]
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [-0.001,-0.001,-0.06, -0.14, -0.20, -0.25, -0.29, -0.33, -0.36],
-  AccelPersonality.normal:    [-0.001,-0.001,-0.08, -0.17, -0.24, -0.29, -0.34, -0.39, -0.43],
-  AccelPersonality.sport:     [-0.002,-0.002,-0.10, -0.20, -0.28, -0.34, -0.39, -0.44, -0.49],
+  AccelPersonality.eco:       [-0.05, -0.08, -0.08, -0.42, -0.48],
+  AccelPersonality.normal:    [-0.08, -0.12, -0.12, -0.52, -0.58],
+  AccelPersonality.sport:     [-1.20, -1.20, -1.20, -1.20, -1.20],
 }
 
-ACCEL_ALPHA_BASE  = 0.68
-ACCEL_ALPHA_MAX   = 0.88
+ACCEL_ALPHA_BASE  = 0.45
+ACCEL_ALPHA_MAX   = 0.72
 ACCEL_ALPHA_SCALE = 0.9
-DECEL_ALPHA_BASE  = 0.80
-DECEL_ALPHA_MIN   = 0.65
-DECEL_ALPHA_SCALE = -0.30
-MAX_DECEL_INCREASE_RATE = 0.13   # m/s³
-MAX_DECEL_DECREASE_RATE = 0.50   # m/s³
+DECEL_ALPHA_BASE  = 0.92
+DECEL_ALPHA_MIN   = 0.80
+DECEL_ALPHA_SCALE = -0.15
+MAX_DECEL_INCREASE_RATE = 0.05   # m/s³
+MAX_DECEL_DECREASE_RATE = 0.40   # m/s³
 
 _MIN_MAX_GAP = 0.05  # m/s²
 
@@ -94,11 +94,9 @@ class AccelPersonalityController:
       self.first_run = False
       return float(target_min), float(target_max)
 
-    # Adaptive accel smoothing
     accel_alpha = self._adaptive_alpha(self.last_max_accel, target_max, ACCEL_ALPHA_BASE, ACCEL_ALPHA_MAX, ACCEL_ALPHA_SCALE)
     self.last_max_accel = accel_alpha * self.last_max_accel + (1.0 - accel_alpha) * target_max
 
-    # Adaptive decel smoothing
     decel_alpha = self._adaptive_alpha(self.last_min_accel, target_min, DECEL_ALPHA_BASE, DECEL_ALPHA_MIN, DECEL_ALPHA_SCALE)
     smoothed_decel = decel_alpha * self.last_min_accel + (1.0 - decel_alpha) * target_min
 

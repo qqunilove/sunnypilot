@@ -103,7 +103,17 @@ class LongitudinalPlannerSP:
 
     # DEBUG
     if self.accel_controller.frame % 20 == 0:
-      v_ego = sm['carState'].vEgo if sm.valid.get('carState', False) else 0.0
+      valid_dict = getattr(sm, 'valid', {}) or {}
+      if isinstance(valid_dict, dict):
+        is_valid = valid_dict.get('carState', False)
+      else:
+        is_valid = getattr(valid_dict, 'get', lambda k, d: False)('carState', False)
+      try:
+        cs = sm['carState']
+        v_ego = getattr(cs, 'vEgo', cs.get('vEgo', 0.0) if isinstance(cs, dict) else 0.0)
+      except Exception:
+        v_ego = 0.0
+
       accel_clip = self.get_accel_clip(v_ego)
       cruise_min = self.get_cruise_min_accel(v_ego)
       t_follow = self.get_t_follow(v_ego)

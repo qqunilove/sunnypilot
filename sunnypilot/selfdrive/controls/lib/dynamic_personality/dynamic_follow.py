@@ -12,18 +12,18 @@ from openpilot.common.params import Params
 
 LongPersonality = log.LongitudinalPersonality
 
-FOLLOW_BREAKPOINTS =          [0.,   3.,   6.,   10.,  15.,  20.,  27.,  35.,  40.]
+FOLLOW_BREAKPOINTS =          [0.,   4.0,  6.0,  11.,  18.,  30.,  40.,]
 
 FOLLOW_PROFILES = {
-  LongPersonality.relaxed:    [1.72, 1.74, 1.76, 1.78, 1.80, 1.84, 1.90, 1.96, 2.00],
-  LongPersonality.standard:   [1.40, 1.41, 1.43, 1.45, 1.47, 1.49, 1.51, 1.54, 1.56],
-  LongPersonality.aggressive: [1.06, 1.07, 1.09, 1.11, 1.13, 1.15, 1.18, 1.20, 1.21],
+  LongPersonality.relaxed:    [1.20, 1.20, 1.55, 1.55, 1.75, 1.66, 1.90],
+  LongPersonality.standard:   [1.00, 1.00, 1.45, 1.45, 1.50, 1.42, 1.47],
+  LongPersonality.aggressive: [0.90, 0.90, 1.30, 1.30, 1.35, 1.28, 1.31],
 }
 
-SMOOTHING_BASE            = 0.84
+SMOOTHING_BASE            = 0.86
 SMOOTHING_RANGE           = 0.08
 SMOOTHING_SPEED_THRESHOLD = 36.0
-SMOOTHING_ERROR_SCALE     = 0.05
+SMOOTHING_ERROR_SCALE     = 0.04
 SMOOTHING_MAX             = 0.97
 PERSONALITY_CHANGE_COOLDOWN_S = 2.0
 
@@ -107,5 +107,6 @@ class FollowDistanceController:
     if self.personality_change_cooldown > 0:
       self.personality_change_cooldown -= 1
     if self.frame % max(1, int(1.0 / DT_MDL)) == 0:
-      self._personality = self.params.get('LongitudinalPersonality') or LongPersonality.standard
+      val = self.params.get('LongitudinalPersonality')
+      self._personality = val if val is not None else LongPersonality.standard
       self._enabled = self.params.get_bool('DynamicFollow')

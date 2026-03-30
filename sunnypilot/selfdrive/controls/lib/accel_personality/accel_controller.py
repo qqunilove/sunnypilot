@@ -48,13 +48,15 @@ class AccelPersonalityController:
     self.last_max_accel = 2.0
     self.last_min_accel = -0.01
     self.first_run = True
-    self._accel_personality = self.params.get('AccelPersonality') or AccelPersonality.normal
+    val = self.params.get('AccelPersonality')
+    self._accel_personality = val if val is not None else AccelPersonality.normal
     self._enabled = self.params.get_bool('AccelPersonalityEnabled')
 
   def update(self, sm=None):
     self.frame += 1
     if self.frame % max(1, int(1.0 / DT_MDL)) == 0:
-      self._accel_personality = self.params.get('AccelPersonality') or AccelPersonality.normal
+      val = self.params.get('AccelPersonality')
+      self._accel_personality = val if val is not None else AccelPersonality.normal
       self._enabled = self.params.get_bool('AccelPersonalityEnabled')
 
   @property

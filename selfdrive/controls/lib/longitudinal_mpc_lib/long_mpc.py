@@ -36,7 +36,7 @@ X_EGO_OBSTACLE_COST = 3.
 X_EGO_COST = 0.
 V_EGO_COST = 0.
 A_EGO_COST = 0.
-J_EGO_COST = 5.
+J_EGO_COST = 20.
 A_CHANGE_COST = 200.
 DANGER_ZONE_COST = 100.
 CRASH_DISTANCE = .25
@@ -53,7 +53,7 @@ T_IDXS_LST = [index_function(idx, max_val=MAX_T, max_idx=N) for idx in range(N+1
 T_IDXS = np.array(T_IDXS_LST)
 FCW_IDXS = T_IDXS < 5.0
 T_DIFFS = np.diff(T_IDXS, prepend=[0.])
-COMFORT_BRAKE = 2.5
+COMFORT_BRAKE = 1.8
 STOP_DISTANCE = 6.0
 CRUISE_MIN_ACCEL = -1.2
 CRUISE_MAX_ACCEL = 2.0
@@ -88,7 +88,7 @@ def get_a_change_factor(v_ego, v_lead0, v_lead1, personality=log.LongitudinalPer
   LEAD_AUGMENTATION_BP_MAX = 7.    # max vEgo for rapid acceleration
 
   LEAD_AUGMENTATION_BP = [0., LEAD_AUGMENTATION_BP_MAX]
-  LEAD_AUGMENTATION_V = [.02, 1.]  # low floor — fast takeoff when lead pulls away
+  LEAD_AUGMENTATION_V = [.05, 1.]  # low floor — fast takeoff when lead pulls away
 
   # increase a_change_cost at higher speed to reduce abrupt braking
   SPEED_AUGMENTATION_BP = [0., LEAD_AUGMENTATION_BP_MAX, 12.]

@@ -32,11 +32,11 @@ COST_E_DIM = 5
 COST_DIM = COST_E_DIM + 1
 CONSTR_DIM = 4
 
-X_EGO_OBSTACLE_COST = 12.
+X_EGO_OBSTACLE_COST = 3.
 X_EGO_COST = 0.
 V_EGO_COST = 0.
 A_EGO_COST = 0.
-J_EGO_COST = 12.
+J_EGO_COST = 5.
 A_CHANGE_COST = 200.
 DANGER_ZONE_COST = 100.
 CRASH_DISTANCE = .25
@@ -53,76 +53,35 @@ T_IDXS_LST = [index_function(idx, max_val=MAX_T, max_idx=N) for idx in range(N+1
 T_IDXS = np.array(T_IDXS_LST)
 FCW_IDXS = T_IDXS < 5.0
 T_DIFFS = np.diff(T_IDXS, prepend=[0.])
-COMFORT_BRAKE = 1.8
+COMFORT_BRAKE = 2.5
 STOP_DISTANCE = 6.0
 CRUISE_MIN_ACCEL = -1.2
-CRUISE_MAX_ACCEL = 2.0
+CRUISE_MAX_ACCEL = 1.6
 MIN_X_LEAD_FACTOR = 0.5
 
 def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
   if personality==log.LongitudinalPersonality.relaxed:
-    return 3.0
+    return 1.0
   elif personality==log.LongitudinalPersonality.standard:
-    return 2.0
+    return 1.0
   elif personality==log.LongitudinalPersonality.aggressive:
-    return 1.2
+    return 0.5
   else:
     raise NotImplementedError("Longitudinal personality not supported")
 
-def get_a_change_factor(v_ego, v_lead0, v_lead1, personality=log.LongitudinalPersonality.standard):
-  if personality==log.LongitudinalPersonality.relaxed:
-    a_change_cost_multiplier_follow = 1.4
-    a_change_cost_high_speed_factor = 1.5
-  elif personality==log.LongitudinalPersonality.standard:
-    a_change_cost_multiplier_follow = 1.1
-    a_change_cost_high_speed_factor = 2.0
-  elif personality==log.LongitudinalPersonality.aggressive:
-    a_change_cost_multiplier_follow = 0.8
-    a_change_cost_high_speed_factor = 4.0
-  else:
-    raise NotImplementedError("Longitudinal personality not supported")
-
-  # stolen from @KRKeegan
-  # values used for interpolation
-  # start with a small A_CHANGE_COST_MULTIPLIER_V during interpolation to allow for faster change in accel
-  LEAD_AUGMENTATION_BP_MAX = 7.    # max vEgo for rapid acceleration
-
-  LEAD_AUGMENTATION_BP = [0., LEAD_AUGMENTATION_BP_MAX]
-  LEAD_AUGMENTATION_V = [.05, 1.]  # low floor — fast takeoff when lead pulls away
-
-  # increase a_change_cost at higher speed to reduce abrupt braking
-  SPEED_AUGMENTATION_BP = [0., LEAD_AUGMENTATION_BP_MAX, 12.]
-  SPEED_AUGMENTATION_V = [1., 1., a_change_cost_high_speed_factor]
-
-  # when lead is pulling away, and speed is between 0 and 5 m/s, interpolate a_change_cost_multiplier_v_ego
-  lead_augmented_a_change_cost = 1.
-  if (v_lead0 - v_ego > 1e-3) and (v_lead1 - v_ego > 1e-3):
-    lead_augmented_a_change_cost = np.interp(v_ego, LEAD_AUGMENTATION_BP, LEAD_AUGMENTATION_V)
-
-  speed_augmented_a_change_cost = a_change_cost_multiplier_follow * np.interp(v_ego, SPEED_AUGMENTATION_BP, SPEED_AUGMENTATION_V)
-  # get the minimum between a_change_factor based on driving personality, and a_change_factor based on v_ego
-  a_change_factor = lead_augmented_a_change_cost if v_ego <= LEAD_AUGMENTATION_BP_MAX else speed_augmented_a_change_cost
-
-  return a_change_factor
 
 def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
   if personality==log.LongitudinalPersonality.relaxed:
-    return 1.70
+    return 1.75
   elif personality==log.LongitudinalPersonality.standard:
     return 1.45
   elif personality==log.LongitudinalPersonality.aggressive:
-    return 1.20
+    return 1.25
   else:
     raise NotImplementedError("Longitudinal personality not supported")
 
-def get_stopped_equivalence_factor(v_lead, v_ego):
-  v_diff_offset = 0
-  if np.all(v_lead - v_ego > 0):
-    v_diff_offset = ((v_lead - v_ego) * 1.)
-    v_diff_offset = np.clip(v_diff_offset, 0, STOP_DISTANCE / 2)
-    v_diff_offset = np.maximum(v_diff_offset * ((10 - v_ego)/10), 0)
-  distance = (v_lead**2) / (2 * COMFORT_BRAKE) + v_diff_offset
-  return distance
+def get_stopped_equivalence_factor(v_lead):
+  return (v_lead**2) / (2 * COMFORT_BRAKE)
 
 def get_safe_obstacle_distance(v_ego, t_follow):
   return (v_ego**2) / (2 * COMFORT_BRAKE) + t_follow * v_ego + STOP_DISTANCE
@@ -308,15 +267,10 @@ class LongitudinalMpc:
     for i in range(N):
       self.solver.cost_set(i, 'Zl', Zl)
 
-  def set_weights(self, prev_accel_constraint=True, v_lead0=0., v_lead1=0., personality=log.LongitudinalPersonality.standard):
+  def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard):
     jerk_factor = get_jerk_factor(personality)
-    v_ego = self.x0[1]
-
-    a_change_factor = get_a_change_factor(v_ego, v_lead0, v_lead1, personality)
-    
     a_change_cost = A_CHANGE_COST if prev_accel_constraint else 0
-    
-    cost_weights = [X_EGO_OBSTACLE_COST, X_EGO_COST, V_EGO_COST, A_EGO_COST, a_change_factor * a_change_cost, jerk_factor * J_EGO_COST]
+    cost_weights = [X_EGO_OBSTACLE_COST, X_EGO_COST, V_EGO_COST, A_EGO_COST, jerk_factor * a_change_cost, jerk_factor * J_EGO_COST]
     constraint_cost_weights = [LIMIT_COST, LIMIT_COST, LIMIT_COST, DANGER_ZONE_COST]
     self.set_cost_weights(cost_weights, constraint_cost_weights)
 
@@ -363,7 +317,6 @@ class LongitudinalMpc:
     if t_follow is None:
       t_follow = get_T_FOLLOW(personality)
     v_ego = self.x0[1]
-    
     self.status = radarstate.leadOne.status or radarstate.leadTwo.status
 
     if a_cruise_min is None:
@@ -372,13 +325,11 @@ class LongitudinalMpc:
     lead_xv_0 = self.process_lead(radarstate.leadOne)
     lead_xv_1 = self.process_lead(radarstate.leadTwo)
 
-    self.set_weights(v_lead0=lead_xv_0[0, 1], v_lead1=lead_xv_1[0, 1], personality=personality)
-
     # To estimate a safe distance from a moving lead, we calculate how much stopping
     # distance that lead needs as a minimum. We can add that to the current distance
     # and then treat that as a stopped car/obstacle at this new distance.
-    lead_0_obstacle = lead_xv_0[:,0] + get_stopped_equivalence_factor(lead_xv_0[:,1], v_ego)
-    lead_1_obstacle = lead_xv_1[:,0] + get_stopped_equivalence_factor(lead_xv_1[:,1], v_ego)
+    lead_0_obstacle = lead_xv_0[:,0] + get_stopped_equivalence_factor(lead_xv_0[:,1])
+    lead_1_obstacle = lead_xv_1[:,0] + get_stopped_equivalence_factor(lead_xv_1[:,1])
 
     # Fake an obstacle for cruise, this ensures smooth acceleration to set speed
     # when the leads are no factor.

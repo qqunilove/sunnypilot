@@ -61,23 +61,23 @@ MIN_X_LEAD_FACTOR = 0.5
 
 def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
   if personality==log.LongitudinalPersonality.relaxed:
-    return 1.8
+    return 2.0
   elif personality==log.LongitudinalPersonality.standard:
-    return 1.2
+    return 1.5
   elif personality==log.LongitudinalPersonality.aggressive:
-    return 0.7
+    return 1.0
   else:
     raise NotImplementedError("Longitudinal personality not supported")
 
 def get_a_change_factor(v_ego, v_lead0, v_lead1, personality=log.LongitudinalPersonality.standard):
   if personality==log.LongitudinalPersonality.relaxed:
-    a_change_cost_multiplier_follow = 1.0
-    a_change_cost_high_speed_factor = 1.0
+    a_change_cost_multiplier_follow = 1.2
+    a_change_cost_high_speed_factor = 1.2
   elif personality==log.LongitudinalPersonality.standard:
-    a_change_cost_multiplier_follow = 0.7
-    a_change_cost_high_speed_factor = 2.0
+    a_change_cost_multiplier_follow = 0.95
+    a_change_cost_high_speed_factor = 2.4
   elif personality==log.LongitudinalPersonality.aggressive:
-    a_change_cost_multiplier_follow = 0.5
+    a_change_cost_multiplier_follow = 0.7
     a_change_cost_high_speed_factor = 5.
   else:
     raise NotImplementedError("Longitudinal personality not supported")

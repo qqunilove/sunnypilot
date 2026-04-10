@@ -15,28 +15,28 @@ ACCEL_PERSONALITY_OPTIONS = [AccelPersonality.eco, AccelPersonality.normal, Acce
 
 # Acceleration Profiles
 MAX_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [2.10, 1.55, 1.10, 0.80, 0.62, 0.52, 0.32, 0.08, 0.06],
-  AccelPersonality.normal:    [2.35, 1.85, 1.30, 1.05, 0.82, 0.64, 0.38, 0.11, 0.07],
-  AccelPersonality.sport:     [2.50, 2.15, 1.60, 1.30, 1.00, 0.80, 0.50, 0.15, 0.09],
+  AccelPersonality.eco:       [2.20, 1.65, 1.15, 0.82, 0.64, 0.52, 0.32, 0.08, 0.06],
+  AccelPersonality.normal:    [2.45, 1.95, 1.40, 1.10, 0.86, 0.66, 0.40, 0.12, 0.07],
+  AccelPersonality.sport:     [2.60, 2.25, 1.70, 1.38, 1.05, 0.82, 0.52, 0.16, 0.09],
 }
 MAX_ACCEL_BREAKPOINTS =       [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
 
 # Decel profiles
-MIN_ACCEL_BREAKPOINTS =       [2.0,   4.0,  16.0,  22.0,  25.0]
+MIN_ACCEL_BREAKPOINTS =       [0.0,   3.0,   6.0,   10.0,  14.0,  18.0,  22.0,  28.0]
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [-0.05, -0.08, -0.08, -0.42, -0.48],
-  AccelPersonality.normal:    [-0.08, -0.12, -0.12, -0.52, -0.58],
-  AccelPersonality.sport:     [-1.20, -1.20, -1.20, -1.20, -1.20],
+  AccelPersonality.eco:       [-0.03, -0.04, -0.06, -0.09, -0.13, -0.18, -0.26, -0.34],
+  AccelPersonality.normal:    [-0.04, -0.06, -0.09, -0.12, -0.18, -0.26, -0.38, -0.48],
+  AccelPersonality.sport:     [-0.55, -0.70, -0.85, -0.98, -1.06, -1.13, -1.17, -1.20],
 }
 
-ACCEL_ALPHA_BASE  = 0.45
-ACCEL_ALPHA_MAX   = 0.72
-ACCEL_ALPHA_SCALE = 0.9
-DECEL_ALPHA_BASE  = 0.85
-DECEL_ALPHA_MIN   = 0.70
-DECEL_ALPHA_SCALE = -0.25
-MAX_DECEL_INCREASE_RATE = 0.18   # m/s³
-MAX_DECEL_DECREASE_RATE = 0.45   # m/s³
+ACCEL_ALPHA_BASE  = 0.35
+ACCEL_ALPHA_MAX   = 0.65
+ACCEL_ALPHA_SCALE = 0.80
+DECEL_ALPHA_BASE  = 0.92
+DECEL_ALPHA_MIN   = 0.84
+DECEL_ALPHA_SCALE = -0.12
+MAX_DECEL_INCREASE_RATE = 0.04   # m/s³
+MAX_DECEL_DECREASE_RATE = 0.38   # m/s³
 
 _MIN_MAX_GAP = 0.05  # m/s²
 

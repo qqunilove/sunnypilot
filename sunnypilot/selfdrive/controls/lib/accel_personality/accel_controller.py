@@ -15,30 +15,30 @@ ACCEL_PERSONALITY_OPTIONS = [AccelPersonality.eco, AccelPersonality.normal, Acce
 
 # Acceleration Profiles
 MAX_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [2.20, 1.65, 1.15, 0.82, 0.64, 0.52, 0.32, 0.08, 0.06],
-  AccelPersonality.normal:    [2.45, 1.95, 1.40, 1.10, 0.86, 0.66, 0.40, 0.12, 0.07],
-  AccelPersonality.sport:     [2.60, 2.25, 1.70, 1.38, 1.05, 0.82, 0.52, 0.16, 0.09],
+  AccelPersonality.eco:       [2.00, 1.45, 1.05, 0.75, 0.58, 0.44, 0.32, 0.14, 0.08],
+  AccelPersonality.normal:    [2.00, 1.65, 1.25, 0.96, 0.76, 0.58, 0.38, 0.16, 0.09],
+  AccelPersonality.sport:     [2.00, 1.95, 1.60, 1.28, 0.98, 0.76, 0.48, 0.20, 0.10],
 }
 MAX_ACCEL_BREAKPOINTS =       [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
 
 # Decel profiles
-MIN_ACCEL_BREAKPOINTS =       [0.0,   3.0,   6.0,   10.0,  14.0,  18.0,  22.0,  28.0]
+MIN_ACCEL_BREAKPOINTS =       [0.0,   3.0,   6.0,   10.0,  14.0,  20.0,  28.0,  40.0]
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:       [-0.03, -0.04, -0.06, -0.09, -0.13, -0.18, -0.26, -0.34],
-  AccelPersonality.normal:    [-0.04, -0.06, -0.09, -0.12, -0.18, -0.26, -0.38, -0.48],
-  AccelPersonality.sport:     [-0.55, -0.70, -0.85, -0.98, -1.06, -1.13, -1.17, -1.20],
+  AccelPersonality.eco:       [-0.18, -0.22, -0.26, -0.30, -0.34, -0.38, -0.42, -0.46],
+  AccelPersonality.normal:    [-0.30, -0.36, -0.42, -0.48, -0.52, -0.56, -0.60, -0.65],
+  AccelPersonality.sport:     [-0.65, -0.72, -0.78, -0.84, -0.88, -0.92, -0.96, -1.00],
 }
 
-ACCEL_ALPHA_BASE  = 0.35
-ACCEL_ALPHA_MAX   = 0.65
-ACCEL_ALPHA_SCALE = 0.80
-DECEL_ALPHA_BASE  = 0.92
-DECEL_ALPHA_MIN   = 0.84
-DECEL_ALPHA_SCALE = -0.12
-MAX_DECEL_INCREASE_RATE = 0.04   # m/s³
-MAX_DECEL_DECREASE_RATE = 0.38   # m/s³
+ACCEL_ALPHA_BASE        = 0.38
+ACCEL_ALPHA_MAX         = 0.66
+ACCEL_ALPHA_SCALE       = 0.82
+DECEL_ALPHA_BASE        = 0.91
+DECEL_ALPHA_MIN         = 0.83
+DECEL_ALPHA_SCALE       = -0.12
+MAX_DECEL_INCREASE_RATE = 0.06   # m/s³
+MAX_DECEL_DECREASE_RATE = 0.36   # m/s³
 
-_MIN_MAX_GAP = 0.05  # m/s²
+_MIN_MAX_GAP = 0.05
 
 
 class AccelPersonalityController:

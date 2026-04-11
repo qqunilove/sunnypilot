@@ -14,23 +14,23 @@ AccelPersonality = custom.LongitudinalPlanSP.AccelerationPersonality
 ACCEL_PERSONALITY_OPTIONS = [AccelPersonality.eco, AccelPersonality.normal, AccelPersonality.sport]
 
 MAX_ACCEL_PROFILES = {
-  AccelPersonality.eco:    [1.60, 1.20, 0.90, 0.68, 0.52, 0.38, 0.26, 0.12, 0.07],
-  AccelPersonality.normal: [1.90, 1.55, 1.15, 0.88, 0.68, 0.52, 0.34, 0.15, 0.08],
-  AccelPersonality.sport:  [2.00, 1.85, 1.50, 1.18, 0.90, 0.70, 0.44, 0.18, 0.09],
+  AccelPersonality.eco:    [1.80, 1.40, 1.05, 0.78, 0.58, 0.40, 0.28, 0.13, 0.07],
+  AccelPersonality.normal: [1.95, 1.60, 1.22, 0.92, 0.70, 0.52, 0.35, 0.15, 0.08],
+  AccelPersonality.sport:  [2.00, 1.88, 1.52, 1.20, 0.92, 0.70, 0.44, 0.18, 0.09],
 }
 MAX_ACCEL_BREAKPOINTS =    [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
 
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:    [-0.12, -0.16, -0.20, -0.24, -0.28, -0.32, -0.36, -0.40],
-  AccelPersonality.normal: [-0.22, -0.28, -0.34, -0.40, -0.44, -0.48, -0.52, -0.56],
-  AccelPersonality.sport:  [-0.45, -0.52, -0.58, -0.64, -0.68, -0.72, -0.76, -0.80],
+  AccelPersonality.eco:    [-0.18, -0.24, -0.30, -0.36, -0.42, -0.48, -0.54, -0.60],
+  AccelPersonality.normal: [-0.28, -0.36, -0.44, -0.52, -0.58, -0.64, -0.70, -0.76],
+  AccelPersonality.sport:  [-0.50, -0.58, -0.66, -0.74, -0.80, -0.86, -0.90, -0.95],
 }
 MIN_ACCEL_BREAKPOINTS =    [0.0,   3.0,   6.0,   10.0,  14.0,  20.0,  28.0,  40.0]
 
-JERK_ACCEL_INC = 2.4   # fast throttle ramp-up (snappy takeoff)
-JERK_ACCEL_DEC = 1.5   # throttle release
-JERK_DECEL_INC = 1.2   # brake release
-JERK_DECEL_DEC = 0.4   # brake application (slow roll-on, no snap)
+JERK_ACCEL_INC = 2.0   # fast throttle ramp-up (snappy takeoff)
+JERK_ACCEL_DEC = 1.8   # throttle release
+JERK_DECEL_INC = 1.4   # brake release
+JERK_DECEL_DEC = 0.5   # brake application (slow roll-on, no snap)
 
 _MIN_MAX_GAP = 0.05
 

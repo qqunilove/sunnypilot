@@ -14,23 +14,23 @@ AccelPersonality = custom.LongitudinalPlanSP.AccelerationPersonality
 ACCEL_PERSONALITY_OPTIONS = [AccelPersonality.eco, AccelPersonality.normal, AccelPersonality.sport]
 
 MAX_ACCEL_PROFILES = {
-  AccelPersonality.eco:    [1.80, 1.40, 1.05, 0.78, 0.58, 0.40, 0.28, 0.13, 0.07],
-  AccelPersonality.normal: [1.95, 1.60, 1.22, 0.92, 0.70, 0.52, 0.35, 0.15, 0.08],
-  AccelPersonality.sport:  [2.00, 1.88, 1.52, 1.20, 0.92, 0.70, 0.44, 0.18, 0.09],
+  AccelPersonality.eco:    [2.00, 1.45, 1.05, 0.75, 0.58, 0.44, 0.32, 0.14, 0.08],
+  AccelPersonality.normal: [2.00, 1.65, 1.25, 0.96, 0.76, 0.58, 0.38, 0.16, 0.09],
+  AccelPersonality.sport:  [2.00, 1.95, 1.60, 1.28, 0.98, 0.76, 0.48, 0.20, 0.10],
 }
-MAX_ACCEL_BREAKPOINTS =    [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
+MAX_ACCEL_BREAKPOINTS = [0.0,  3.0,  5.0,  8.0,  12.0, 18.0, 24.0, 32.0, 42.0]
 
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:    [-0.18, -0.24, -0.30, -0.36, -0.42, -0.48, -0.54, -0.60],
-  AccelPersonality.normal: [-0.28, -0.36, -0.44, -0.52, -0.58, -0.64, -0.70, -0.76],
-  AccelPersonality.sport:  [-0.50, -0.58, -0.66, -0.74, -0.80, -0.86, -0.90, -0.95],
+  AccelPersonality.eco:    [-0.50, -0.60, -0.70, -0.80, -0.90, -1.00, -1.20, -1.50],
+  AccelPersonality.normal: [-0.60, -0.80, -1.00, -1.20, -1.50, -1.80, -2.00, -2.20],
+  AccelPersonality.sport:  [-0.80, -1.00, -1.30, -1.60, -2.00, -2.30, -2.50, -2.80],
 }
-MIN_ACCEL_BREAKPOINTS =    [0.0,   3.0,   6.0,   10.0,  14.0,  20.0,  28.0,  40.0]
+MIN_ACCEL_BREAKPOINTS = [0.0,  3.0,  6.0, 10.0,  14.0, 20.0, 28.0, 40.0]
 
-JERK_ACCEL_INC = 2.0   # fast throttle ramp-up (snappy takeoff)
-JERK_ACCEL_DEC = 1.8   # throttle release
-JERK_DECEL_INC = 1.4   # brake release
-JERK_DECEL_DEC = 0.5   # brake application (slow roll-on, no snap)
+JERK_ACCEL_INC = 2.4
+JERK_ACCEL_DEC = 1.5
+JERK_DECEL_INC = 1.2
+JERK_DECEL_DEC = 0.4
 
 _MIN_MAX_GAP = 0.05
 
@@ -40,7 +40,7 @@ class AccelPersonalityController:
     self.params = Params()
     self.frame = 0
     self.last_max_accel = 2.0
-    self.last_min_accel = -0.01
+    self.last_min_accel = 0.0
     self.first_run = True
     val = self.params.get('AccelPersonality')
     self._accel_personality = val if val is not None else AccelPersonality.normal
@@ -74,8 +74,8 @@ class AccelPersonalityController:
 
   def get_accel_limits(self, v_ego: float) -> tuple[float, float]:
     v_ego = max(0.0, v_ego)
-    target_max = float(np.interp(v_ego, MAX_ACCEL_BREAKPOINTS, MAX_ACCEL_PROFILES[self._accel_personality]))
-    target_min = float(np.interp(v_ego, MIN_ACCEL_BREAKPOINTS, MIN_ACCEL_PROFILES[self._accel_personality]))
+    target_max = float(np.interp(v_ego, MAX_ACCEL_BREAKPOINTS, MAX_ACCEL_PROFILES[self.accel_personality]))
+    target_min = float(np.interp(v_ego, MIN_ACCEL_BREAKPOINTS, MIN_ACCEL_PROFILES[self.accel_personality]))
 
     if self.first_run:
       self.last_max_accel = target_max
@@ -83,17 +83,16 @@ class AccelPersonalityController:
       self.first_run = False
       return float(target_min), float(target_max)
 
-    self.last_max_accel = float(np.clip(target_max,
-      self.last_max_accel - JERK_ACCEL_DEC * DT_MDL,
-      self.last_max_accel + JERK_ACCEL_INC * DT_MDL))
-
-    self.last_min_accel = float(np.clip(target_min,
-      self.last_min_accel - JERK_DECEL_DEC * DT_MDL,
-      self.last_min_accel + JERK_DECEL_INC * DT_MDL))
+    max_accel_step_up = JERK_ACCEL_INC * DT_MDL
+    max_accel_step_down = JERK_ACCEL_DEC * DT_MDL
+    min_accel_step_up = JERK_DECEL_INC * DT_MDL
+    min_accel_step_down = JERK_DECEL_DEC * DT_MDL
+    self.last_max_accel = float(np.clip(target_max, self.last_max_accel - max_accel_step_down, self.last_max_accel + max_accel_step_up))
+    self.last_min_accel = float(np.clip(target_min, self.last_min_accel - min_accel_step_down, self.last_min_accel + min_accel_step_up))
 
     self.last_min_accel = min(self.last_min_accel, self.last_max_accel - _MIN_MAX_GAP)
 
-    return float(self.last_min_accel), float(self.last_max_accel)
+    return self.last_min_accel, self.last_max_accel
 
   def get_min_accel(self, v_ego: float) -> float:
     return self.get_accel_limits(v_ego)[0]
@@ -118,5 +117,5 @@ class AccelPersonalityController:
     self.params.put('AccelPersonality', new_personality)
     self.frame = 0
     self.last_max_accel = 2.0
-    self.last_min_accel = -0.01
+    self.last_min_accel = 0.0
     self.first_run = True

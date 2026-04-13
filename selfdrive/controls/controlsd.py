@@ -86,8 +86,8 @@ class Controls(ControlsExt):
     steer_angle_without_offset = math.radians(CS.steeringAngleDeg - lp.angleOffsetDeg)
     self.curvature = -self.VM.calc_curvature(steer_angle_without_offset, CS.vEgo, lp.roll)
 
-    # Update Torque Params
-    if self.CP.lateralTuning.which() == 'torque':
+    # Update Torque Params (only when using torque control, not angle)
+    if self.CP.steerControlType != car.CarParams.SteerControlType.angle and self.CP.lateralTuning.which() == 'torque':
       torque_params = self.sm['liveTorqueParameters']
       if self.sm.all_checks(['liveTorqueParameters']) and torque_params.useParams:
         self.LaC.update_live_torque_params(torque_params.latAccelFactorFiltered, torque_params.latAccelOffsetFiltered,

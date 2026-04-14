@@ -21,14 +21,15 @@ MAX_ACCEL_PROFILES = {
 MAX_ACCEL_BREAKPOINTS = [0.0, 3.0, 5.0, 8.0, 12.0, 18.0, 24.0, 32.0, 42.0]
 
 MIN_ACCEL_PROFILES = {
-  AccelPersonality.eco:    [-0.20, -0.28, -0.38, -0.48, -0.60, -0.72, -0.85, -0.98],
-  AccelPersonality.normal: [-0.28, -0.38, -0.52, -0.68, -0.85, -1.05, -1.25, -1.42],
-  AccelPersonality.sport:  [-0.42, -0.58, -0.78, -1.00, -1.28, -1.55, -1.78, -1.98],
+  AccelPersonality.eco:    [-0.14, -0.20, -0.28, -0.36, -0.46, -0.58, -0.70, -0.82],
+  AccelPersonality.normal: [-0.20, -0.28, -0.40, -0.54, -0.70, -0.88, -1.08, -1.25],
+  AccelPersonality.sport:  [-0.32, -0.46, -0.64, -0.84, -1.10, -1.38, -1.62, -1.85],
 }
 MIN_ACCEL_BREAKPOINTS = [0.0, 3.0, 6.0, 10.0, 14.0, 20.0, 28.0, 40.0]
 
-JERK_ACCEL = 0.8
-JERK_DECEL = 0.5
+JERK_ACCEL = 0.8   # how fast accel ceiling rises/falls
+JERK_DECEL_ON  = 0.4   # how fast braking engages (tightens)
+JERK_DECEL_OFF = 0.25  # how fast braking releases (relaxes) — slower = no nose-bob
 
 _MIN_MAX_GAP = 0.05
 
@@ -75,9 +76,6 @@ class AccelPersonalityController:
     target_max = float(np.interp(v_ego, MAX_ACCEL_BREAKPOINTS, MAX_ACCEL_PROFILES[self.accel_personality]))
     target_min = float(np.interp(v_ego, MIN_ACCEL_BREAKPOINTS, MIN_ACCEL_PROFILES[self.accel_personality]))
 
-    if target_min > self.last_min_accel:
-      target_min *= 0.95
-
     if self.first_run:
       self.last_max_accel = target_max
       self.last_min_accel = target_min
@@ -85,7 +83,9 @@ class AccelPersonalityController:
       return float(target_min), float(target_max)
 
     accel_step = JERK_ACCEL * DT_MDL
-    decel_step = JERK_DECEL * DT_MDL
+    # decel floor tightens slowly, releases even more slowly — gradual coast-in, no nose-bob
+    decel_step = JERK_DECEL_ON * DT_MDL if target_min < self.last_min_accel else JERK_DECEL_OFF * DT_MDL
+
     self.last_max_accel = float(np.clip(target_max, self.last_max_accel - accel_step, self.last_max_accel + accel_step))
     self.last_min_accel = float(np.clip(target_min, self.last_min_accel - decel_step, self.last_min_accel + decel_step))
 

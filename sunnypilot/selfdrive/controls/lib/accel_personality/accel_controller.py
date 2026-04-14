@@ -70,14 +70,10 @@ class AccelPersonalityController:
     self.set_accel_personality(next_personality)
     return int(next_personality)
 
-  def get_accel_limits(self, v_ego: float, v_cruise: float = None) -> tuple[float, float]:
+  def get_accel_limits(self, v_ego: float) -> tuple[float, float]:
     v_ego = max(0.0, v_ego)
     target_max = float(np.interp(v_ego, MAX_ACCEL_BREAKPOINTS, MAX_ACCEL_PROFILES[self.accel_personality]))
     target_min = float(np.interp(v_ego, MIN_ACCEL_BREAKPOINTS, MIN_ACCEL_PROFILES[self.accel_personality]))
-
-    if v_cruise is not None:
-      ramp = float(np.interp(v_cruise - v_ego, [0., 1., 5., 10.], [0., 0.5, 1.0, 1.0]))
-      target_max *= ramp
 
     if target_min > self.last_min_accel:
       target_min *= 0.95
@@ -97,11 +93,11 @@ class AccelPersonalityController:
 
     return self.last_min_accel, self.last_max_accel
 
-  def get_min_accel(self, v_ego: float, v_cruise: float = None) -> float:
-    return self.get_accel_limits(v_ego, v_cruise)[0]
+  def get_min_accel(self, v_ego: float) -> float:
+    return self.get_accel_limits(v_ego)[0]
 
-  def get_max_accel(self, v_ego: float, v_cruise: float = None) -> float:
-    return self.get_accel_limits(v_ego, v_cruise)[1]
+  def get_max_accel(self, v_ego: float) -> float:
+    return self.get_accel_limits(v_ego)[1]
 
   def is_enabled(self) -> bool:
     return self._enabled

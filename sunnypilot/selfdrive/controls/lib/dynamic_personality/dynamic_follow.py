@@ -12,19 +12,26 @@ from openpilot.common.params import Params
 
 LongPersonality = log.LongitudinalPersonality
 
-FOLLOW_BREAKPOINTS =          [0.,   4.0,  6.0,  11.,  18.,  30.,  40.,]
+FOLLOW_BREAKPOINTS =          [0.,   4.0,  6.0,  11.,  18.,  30.,  40.]
 
 FOLLOW_PROFILES = {
-  LongPersonality.relaxed:    [1.45, 1.50, 1.65, 1.68, 1.85, 1.76, 1.92],
-  LongPersonality.standard:   [1.20, 1.25, 1.42, 1.45, 1.55, 1.48, 1.52],
-  LongPersonality.aggressive: [1.00, 1.05, 1.28, 1.30, 1.36, 1.30, 1.33],
+  LongPersonality.relaxed:    [1.60, 1.65, 1.82, 1.88, 2.05, 1.96, 2.12],
+  LongPersonality.standard:   [1.35, 1.40, 1.58, 1.64, 1.75, 1.68, 1.78],
+  LongPersonality.aggressive: [1.10, 1.15, 1.35, 1.40, 1.50, 1.44, 1.52],
 }
 
-SMOOTHING_BASE            = 0.91
-SMOOTHING_RANGE           = 0.05
-SMOOTHING_SPEED_THRESHOLD = 36.0
-SMOOTHING_ERROR_SCALE     = 0.02
-SMOOTHING_MAX             = 0.97
+SMOOTHING_SPEED_REF = 36.0
+
+# When multiplier needs to grow (lead is slowing — brake side)
+_ALPHA_SLOW_BASE  = 0.965   # near-standstill
+_ALPHA_SLOW_RANGE = 0.020   # +range at highway = 0.985 max
+
+# When multiplier needs to shrink (lead pulling away — throttle side)
+_ALPHA_FAST_BASE  = 0.920
+_ALPHA_FAST_RANGE = 0.040   # 0.960 at highway
+
+_ALPHA_MAX = 0.988
+
 PERSONALITY_CHANGE_COOLDOWN_S = 2.0
 
 
@@ -40,11 +47,14 @@ class FollowDistanceController:
     self._personality = val if val is not None else LongPersonality.standard
     self._enabled = self.params.get_bool('DynamicFollow')
 
-  def _get_smoothing_factor(self, v_ego: float, target: float) -> float:
-    speed_factor = np.clip(v_ego / SMOOTHING_SPEED_THRESHOLD, 0.3, 1.0)
-    base = SMOOTHING_BASE + (SMOOTHING_RANGE * speed_factor)
-    error = abs(target - self.current_multiplier) if self.current_multiplier is not None else 0
-    return min(SMOOTHING_MAX, base + error * SMOOTHING_ERROR_SCALE)
+  def _get_alpha(self, v_ego: float, target: float) -> float:
+    speed_frac = np.clip(v_ego / SMOOTHING_SPEED_REF, 0.0, 1.0)
+    increasing = target > self.current_multiplier
+    if increasing:
+      alpha = _ALPHA_SLOW_BASE + _ALPHA_SLOW_RANGE * speed_frac
+    else:
+      alpha = _ALPHA_FAST_BASE + _ALPHA_FAST_RANGE * speed_frac
+    return float(min(_ALPHA_MAX, alpha))
 
   def is_enabled(self) -> bool:
     return self._enabled
@@ -75,9 +85,9 @@ class FollowDistanceController:
   def cycle_personality(self) -> int:
     personalities = [LongPersonality.relaxed, LongPersonality.standard, LongPersonality.aggressive]
     current_idx = personalities.index(self._personality)
-    next_personality = personalities[(current_idx + 1) % len(personalities)]
-    self.set_personality(next_personality)
-    return int(next_personality)
+    next_p = personalities[(current_idx + 1) % len(personalities)]
+    self.set_personality(next_p)
+    return int(next_p)
 
   def get_follow_distance_multiplier(self, v_ego: float) -> float:
     v_ego = max(0.0, v_ego)
@@ -91,7 +101,7 @@ class FollowDistanceController:
     if self.personality_change_cooldown > 0:
       return float(self.current_multiplier)
 
-    alpha = self._get_smoothing_factor(v_ego, target)
+    alpha = self._get_alpha(v_ego, target)
     self.current_multiplier = alpha * self.current_multiplier + (1.0 - alpha) * target
     return float(self.current_multiplier)
 

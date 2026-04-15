@@ -27,11 +27,17 @@ MIN_ACCEL_BASE = {
   AccelPersonality.normal: -0.80,
   AccelPersonality.sport:  -1.15,
 }
-MIN_ACCEL_DECAY = 0.030  # same decay rate across all personalities
+MIN_ACCEL_DECAY = 0.030  # same decay rate for all personalities
 
-JERK_ACCEL      = 0.80   # accel ceiling rise/fall rate — unchanged
-JERK_DECEL_ON   = 0.18   # brake floor tightens slowly — soft bite
-JERK_DECEL_OFF  = 0.12   # brake floor releases even slower — no nose-bob
+JERK_ACCEL = 0.55  # accel ceiling symmetric rate (m/s² per s)
+
+# fast at standstill, very slow at highway
+_DECEL_ON_BP = [0.0,  8.0,  18.0,  32.0]
+_DECEL_ON_V  = [0.28, 0.18,  0.12,  0.08]  # m/s² per s
+
+# always slower — prevents nose-bob
+_DECEL_OFF_BP = [0.0,  8.0,  18.0,  32.0]
+_DECEL_OFF_V  = [0.14, 0.09,  0.06,  0.05]  # m/s² per s
 
 _MIN_MAX_GAP = 0.05
 
@@ -40,15 +46,20 @@ class AccelPersonalityController:
   def __init__(self):
     self.params = Params()
     self.frame = 0
+    self.first_run = True
     self.last_max_accel = 2.0
     self.last_min_accel = 0.0
-    self.first_run = True
+    self._cache_v: float | None = None
+    self._cache_min: float = 0.0
+    self._cache_max: float = 2.0
+
     val = self.params.get('AccelPersonality')
     self._accel_personality = val if val is not None else AccelPersonality.normal
     self._enabled = self.params.get_bool('AccelPersonalityEnabled')
 
   def update(self, sm=None):
     self.frame += 1
+    self._cache_v = None
     if self.frame % max(1, int(1.0 / DT_MDL)) == 0:
       val = self.params.get('AccelPersonality')
       self._accel_personality = val if val is not None else AccelPersonality.normal
@@ -69,30 +80,40 @@ class AccelPersonalityController:
   def cycle_accel_personality(self) -> int:
     current = self._accel_personality
     idx = ACCEL_PERSONALITY_OPTIONS.index(current) if current in ACCEL_PERSONALITY_OPTIONS else 0
-    next_personality = ACCEL_PERSONALITY_OPTIONS[(idx + 1) % len(ACCEL_PERSONALITY_OPTIONS)]
-    self.set_accel_personality(next_personality)
-    return int(next_personality)
+    next_p = ACCEL_PERSONALITY_OPTIONS[(idx + 1) % len(ACCEL_PERSONALITY_OPTIONS)]
+    self.set_accel_personality(next_p)
+    return int(next_p)
 
-  def get_accel_limits(self, v_ego: float) -> tuple[float, float]:
-    v_ego = max(0.0, v_ego)
-    target_max = float(np.interp(v_ego, MAX_ACCEL_BREAKPOINTS, MAX_ACCEL_PROFILES[self.accel_personality]))
-    target_min = float(MIN_ACCEL_BASE[self.accel_personality] * np.exp(-MIN_ACCEL_DECAY * v_ego))
+  def _step(self, v_ego: float) -> tuple[float, float]:
+    target_max = float(np.interp(v_ego, MAX_ACCEL_BREAKPOINTS, MAX_ACCEL_PROFILES[self._accel_personality]))
+    target_min = float(MIN_ACCEL_BASE[self._accel_personality] * np.exp(-MIN_ACCEL_DECAY * v_ego))
 
     if self.first_run:
       self.last_max_accel = target_max
       self.last_min_accel = target_min
       self.first_run = False
-      return float(target_min), float(target_max)
+      return target_min, target_max
 
-    accel_step = JERK_ACCEL * DT_MDL
-    decel_step = JERK_DECEL_ON * DT_MDL if target_min < self.last_min_accel else JERK_DECEL_OFF * DT_MDL
+    a_step = JERK_ACCEL * DT_MDL
+    new_max = float(np.clip(target_max, self.last_max_accel - a_step, self.last_max_accel + a_step))
 
-    self.last_max_accel = float(np.clip(target_max, self.last_max_accel - accel_step, self.last_max_accel + accel_step))
-    self.last_min_accel = float(np.clip(target_min, self.last_min_accel - decel_step, self.last_min_accel + decel_step))
+    tightening = target_min < self.last_min_accel
+    d_rate = float(np.interp(v_ego, _DECEL_ON_BP, _DECEL_ON_V)) if tightening \
+         else float(np.interp(v_ego, _DECEL_OFF_BP, _DECEL_OFF_V))
+    new_min = float(np.clip(target_min, self.last_min_accel - d_rate * DT_MDL, self.last_min_accel + d_rate * DT_MDL))
+    new_min = min(new_min, new_max - _MIN_MAX_GAP)
 
-    self.last_min_accel = min(self.last_min_accel, self.last_max_accel - _MIN_MAX_GAP)
+    self.last_max_accel = new_max
+    self.last_min_accel = new_min
+    return new_min, new_max
 
-    return self.last_min_accel, self.last_max_accel
+  def get_accel_limits(self, v_ego: float) -> tuple[float, float]:
+    v_ego = max(0.0, v_ego)
+    if self._cache_v is not None and abs(self._cache_v - v_ego) < 0.01:
+      return self._cache_min, self._cache_max
+    self._cache_min, self._cache_max = self._step(v_ego)
+    self._cache_v = v_ego
+    return self._cache_min, self._cache_max
 
   def get_min_accel(self, v_ego: float) -> float:
     return self.get_accel_limits(v_ego)[0]
@@ -112,10 +133,11 @@ class AccelPersonalityController:
     return self._enabled
 
   def reset(self, personality: int = None):
-    new_personality = personality if personality in ACCEL_PERSONALITY_OPTIONS else AccelPersonality.normal
-    self._accel_personality = new_personality
-    self.params.put('AccelPersonality', new_personality)
+    new_p = personality if personality in ACCEL_PERSONALITY_OPTIONS else AccelPersonality.normal
+    self._accel_personality = new_p
+    self.params.put('AccelPersonality', new_p)
     self.frame = 0
     self.last_max_accel = 2.0
     self.last_min_accel = 0.0
+    self._cache_v = None
     self.first_run = True

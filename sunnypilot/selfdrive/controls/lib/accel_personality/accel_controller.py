@@ -14,30 +14,29 @@ AccelPersonality = custom.LongitudinalPlanSP.AccelerationPersonality
 ACCEL_PERSONALITY_OPTIONS = [AccelPersonality.eco, AccelPersonality.normal, AccelPersonality.sport]
 
 MAX_ACCEL_PROFILES = {
-  AccelPersonality.eco:    [1.35, 1.10, 0.82, 0.62, 0.48, 0.36, 0.25, 0.12, 0.06],
-  AccelPersonality.normal: [1.55, 1.30, 1.00, 0.78, 0.62, 0.47, 0.30, 0.13, 0.07],
-  AccelPersonality.sport:  [1.80, 1.60, 1.28, 1.02, 0.82, 0.62, 0.40, 0.17, 0.09],
+  AccelPersonality.eco:    [2.00, 1.55, 1.10, 0.78, 0.56, 0.38, 0.24, 0.10, 0.05],
+  AccelPersonality.normal: [2.00, 1.65, 1.25, 0.95, 0.72, 0.52, 0.32, 0.13, 0.07],
+  AccelPersonality.sport:  [2.00, 1.80, 1.45, 1.15, 0.90, 0.68, 0.44, 0.18, 0.09],
 }
 MAX_ACCEL_BREAKPOINTS = [0.0, 3.0, 5.0, 8.0, 12.0, 18.0, 24.0, 32.0, 42.0]
 
-# Exponential decel floor: authority fades with speed, smooth by construction.
-# base * exp(-k * v_ego). MPC (COMFORT_BRAKE, A_CHANGE_COST) owns hard braking above this.
+# Cruise decel floor: base * exp(-decay * v_ego)
 MIN_ACCEL_BASE = {
-  AccelPersonality.eco:    -0.52,
-  AccelPersonality.normal: -0.80,
-  AccelPersonality.sport:  -1.15,
+  AccelPersonality.eco:    -0.35,
+  AccelPersonality.normal: -0.55,
+  AccelPersonality.sport:  -0.90,
 }
-MIN_ACCEL_DECAY = 0.030  # same decay rate for all personalities
+MIN_ACCEL_DECAY = 0.022  # smooth exponential fade with speed
 
-JERK_ACCEL = 0.55  # accel ceiling symmetric rate (m/s² per s)
+JERK_ACCEL = 0.50  # accel ceiling rate (m/s² per s)
 
-# fast at standstill, very slow at highway
+# Decel floor engagement: very slow — brake authority drifts in, no bite
 _DECEL_ON_BP = [0.0,  8.0,  18.0,  32.0]
-_DECEL_ON_V  = [0.28, 0.18,  0.12,  0.08]  # m/s² per s
+_DECEL_ON_V  = [0.20, 0.13,  0.08,  0.06]  # m/s² per s
 
-# always slower — prevents nose-bob
+# Decel floor release: slightly faster — lets MPC back off cleanly without trailing clamp
 _DECEL_OFF_BP = [0.0,  8.0,  18.0,  32.0]
-_DECEL_OFF_V  = [0.14, 0.09,  0.06,  0.05]  # m/s² per s
+_DECEL_OFF_V  = [0.22, 0.16,  0.12,  0.09]  # m/s² per s
 
 _MIN_MAX_GAP = 0.05
 

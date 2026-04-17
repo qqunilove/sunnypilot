@@ -15,22 +15,22 @@ LongPersonality = log.LongitudinalPersonality
 FOLLOW_BREAKPOINTS =          [0.,   4.0,  6.0,  11.,  18.,  30.,  40.]
 
 FOLLOW_PROFILES = {
-  LongPersonality.relaxed:    [1.60, 1.65, 1.82, 1.88, 2.05, 1.96, 2.12],
-  LongPersonality.standard:   [1.35, 1.40, 1.58, 1.64, 1.75, 1.68, 1.78],
-  LongPersonality.aggressive: [1.10, 1.15, 1.35, 1.40, 1.50, 1.44, 1.52],
+  LongPersonality.relaxed:    [1.55, 1.60, 1.75, 1.78, 1.92, 1.84, 1.98],
+  LongPersonality.standard:   [1.25, 1.30, 1.48, 1.52, 1.62, 1.55, 1.65],
+  LongPersonality.aggressive: [1.05, 1.10, 1.28, 1.32, 1.42, 1.36, 1.45],
 }
 
 SMOOTHING_SPEED_REF = 36.0
 
-# When multiplier needs to grow (lead is slowing — brake side)
-_ALPHA_SLOW_BASE  = 0.965   # near-standstill
-_ALPHA_SLOW_RANGE = 0.020   # +range at highway = 0.985 max
+# Braking side (multiplier growing — lead slowing): very high inertia = glide-in feel
+_ALPHA_SLOW_BASE  = 0.975   # near-standstill
+_ALPHA_SLOW_RANGE = 0.012   # +range at highway → 0.987 max
 
-# When multiplier needs to shrink (lead pulling away — throttle side)
-_ALPHA_FAST_BASE  = 0.920
-_ALPHA_FAST_RANGE = 0.040   # 0.960 at highway
+# Throttle side (multiplier shrinking — gap opening): faster so we don't dawdle on throttle
+_ALPHA_FAST_BASE  = 0.930
+_ALPHA_FAST_RANGE = 0.045   # → 0.975 at highway
 
-_ALPHA_MAX = 0.988
+_ALPHA_MAX = 0.990
 
 PERSONALITY_CHANGE_COOLDOWN_S = 2.0
 

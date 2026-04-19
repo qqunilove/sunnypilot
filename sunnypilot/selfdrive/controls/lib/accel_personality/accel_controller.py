@@ -17,27 +17,47 @@ ACCEL_PERSONALITY_OPTIONS = [AccelPersonality.eco, AccelPersonality.normal, Acce
 MAX_ACCEL_BP = [0.0, 3.0, 6.0, 10.0, 15.0, 22.0, 30.0, 40.0]  # m/s
 
 MAX_ACCEL_V = {
-  AccelPersonality.eco:    [2.00, 1.40, 1.00, 0.70, 0.48, 0.30, 0.15, 0.06],
-  AccelPersonality.normal: [2.00, 1.55, 1.15, 0.85, 0.60, 0.40, 0.20, 0.08],
-  AccelPersonality.sport:  [2.00, 1.75, 1.40, 1.08, 0.80, 0.55, 0.28, 0.10],
+  AccelPersonality.eco:    [1.60, 1.10, 0.80, 0.55, 0.38, 0.24, 0.12, 0.05],
+  AccelPersonality.normal: [1.80, 1.30, 0.95, 0.72, 0.50, 0.32, 0.16, 0.07],
+  AccelPersonality.sport:  [2.00, 1.60, 1.25, 0.95, 0.70, 0.48, 0.24, 0.10],
 }
 
-MIN_ACCEL_BP = [0.0, 5.0, 10.0, 18.0, 28.0, 40.0]  # m/s
+# Speed-shaped accel jerk rate (m/s³): faster ramp at low speed for launch feel,
+# more restrained at highway so the car doesn't surge.
+JERK_ACCEL_BP = [0.0,  8.0, 20.0, 40.0]  # m/s
+JERK_ACCEL_V  = [1.20, 0.80, 0.50, 0.35]  # m/s³
 
-MIN_ACCEL_V = {
-  AccelPersonality.eco:    [-0.10, -0.18, -0.28, -0.45, -0.65, -0.85],
-  AccelPersonality.normal: [-0.18, -0.30, -0.46, -0.70, -0.95, -1.20],
-  AccelPersonality.sport:  [-0.30, -0.50, -0.75, -1.10, -1.45, -1.80],
+# Coast window: tighter at low speed (less creep), wider at highway (more coast).
+COAST_WINDOW_BP = [0.0, 10.0, 20.0, 35.0]  # m/s
+COAST_WINDOW_V  = [0.25, 0.45, 0.65, 1.00]  # m/s excess before braking starts
+
+# Speed excess that maps to full brake authority (t=1).
+EXCESS_SCALE_BP = [0.0, 10.0, 20.0, 35.0]  # m/s
+EXCESS_SCALE_V  = [0.8,  1.8,  3.0,  4.5]  # m/s
+
+FULL_BRAKE_FLOOR_BP = [0.0, 5.0, 10.0, 18.0, 28.0, 40.0]  # m/s
+
+FULL_BRAKE_FLOOR_V = {
+  AccelPersonality.eco:    [-0.10, -0.20,  -0.28, -0.38, -0.50, -0.60],
+  AccelPersonality.normal: [-0.12, -0.24,  -0.38, -0.52, -0.68, -0.82],
+  AccelPersonality.sport:  [-0.25, -0.45,  -0.62, -0.82, -1.05, -1.25],
 }
 
+# Coast floor: a_min while v_ego is within the coast window
+COAST_FLOOR = {
+  AccelPersonality.eco:    -0.02,
+  AccelPersonality.normal: -0.03,
+  AccelPersonality.sport:  -0.05,
+}
 
-JERK_ACCEL_BP = [0.0,  8.0,  20.0,  35.0]   # m/s
-JERK_ACCEL_V  = [0.80, 0.55,  0.40,  0.30]   # m/s² per s
+JERK_DECEL_BP    = [0.0,  8.0, 20.0, 35.0]  # m/s
+JERK_DECEL_ONSET = [0.15, 0.10, 0.07, 0.05]  # m/s³
 
-JERK_DECEL_BP = [0.0,  8.0,  20.0,  35.0]   # m/s
-JERK_DECEL_V  = [0.60, 0.40,  0.28,  0.20]   # m/s² per s
+JERK_DECEL_EASE  = [0.35, 0.26, 0.18, 0.12]  # m/s³
+EASE_FEATHER     = 0.65   # blend factor: actual_ease = interp * feather
 
 _MIN_MAX_GAP = 0.05
+_PARAM_REFRESH_FRAMES = max(1, int(1.0 / DT_MDL))
 
 
 class AccelPersonalityController:
@@ -45,20 +65,33 @@ class AccelPersonalityController:
     self.params = Params()
     self.frame = 0
     self.first_run = True
-    self._last_max = 2.0
-    self._last_min = -0.18
+
+    self._last_max: float = 1.80
+    self._last_min: float = -0.03
+
     self._cache_v: float | None = None
-    self._cache_min: float = -0.18
-    self._cache_max: float = 2.0
+    self._cache_cruise: float | None = None
+    self._cache_min: float = -0.03
+    self._cache_max: float = 1.80
 
     val = self.params.get('AccelPersonality')
     self._accel_personality = val if val is not None else AccelPersonality.normal
     self._enabled = self.params.get_bool('AccelPersonalityEnabled')
 
+    self._v_cruise: float = 0.0
+
   def update(self, sm=None):
     self.frame += 1
     self._cache_v = None
-    if self.frame % max(1, int(1.0 / DT_MDL)) == 0:
+    self._cache_cruise = None
+
+    if sm is not None:
+      try:
+        self._v_cruise = float(sm['carState'].vCruise) * (1000.0 / 3600.0)
+      except Exception:
+        pass
+
+    if self.frame % _PARAM_REFRESH_FRAMES == 0:
       val = self.params.get('AccelPersonality')
       self._accel_personality = val if val is not None else AccelPersonality.normal
       self._enabled = self.params.get_bool('AccelPersonalityEnabled')
@@ -82,9 +115,25 @@ class AccelPersonalityController:
     self.set_accel_personality(next_p)
     return int(next_p)
 
+  def _compute_target_min(self, v_ego: float) -> float:
+    coast_floor = COAST_FLOOR[self._accel_personality]
+    full_floor  = float(np.interp(v_ego, FULL_BRAKE_FLOOR_BP, FULL_BRAKE_FLOOR_V[self._accel_personality]))
+
+    excess       = max(0.0, v_ego - self._v_cruise)
+    coast_window = float(np.interp(v_ego, COAST_WINDOW_BP, COAST_WINDOW_V))
+
+    if excess <= coast_window:
+      return coast_floor
+
+    excess_scale = float(np.interp(v_ego, EXCESS_SCALE_BP, EXCESS_SCALE_V))
+    # Linear t, then squared slow start, natural buildup.
+    t_linear = np.clip((excess - coast_window) / max(excess_scale - coast_window, 0.1), 0.0, 1.0)
+    t = t_linear ** 2
+    return coast_floor + t * (full_floor - coast_floor)
+
   def _step(self, v_ego: float) -> tuple[float, float]:
     target_max = float(np.interp(v_ego, MAX_ACCEL_BP, MAX_ACCEL_V[self._accel_personality]))
-    target_min = float(np.interp(v_ego, MIN_ACCEL_BP, MIN_ACCEL_V[self._accel_personality]))
+    target_min = self._compute_target_min(v_ego)
 
     if self.first_run:
       self._last_max = target_max
@@ -93,9 +142,13 @@ class AccelPersonalityController:
       return target_min, target_max
 
     a_rate = float(np.interp(v_ego, JERK_ACCEL_BP, JERK_ACCEL_V)) * DT_MDL
-    d_rate = float(np.interp(v_ego, JERK_DECEL_BP, JERK_DECEL_V)) * DT_MDL
-
     new_max = float(np.clip(target_max, self._last_max - a_rate, self._last_max + a_rate))
+
+    if target_min < self._last_min:
+      d_rate = float(np.interp(v_ego, JERK_DECEL_BP, JERK_DECEL_ONSET)) * DT_MDL
+    else:
+      d_rate = float(np.interp(v_ego, JERK_DECEL_BP, JERK_DECEL_EASE)) * DT_MDL * EASE_FEATHER
+
     new_min = float(np.clip(target_min, self._last_min - d_rate, self._last_min + d_rate))
     new_min = min(new_min, new_max - _MIN_MAX_GAP)
 
@@ -103,12 +156,17 @@ class AccelPersonalityController:
     self._last_min = new_min
     return new_min, new_max
 
+  # ── Public API ─────────────────────────────────────────────────────────────
+
   def get_accel_limits(self, v_ego: float) -> tuple[float, float]:
     v_ego = max(0.0, v_ego)
-    if self._cache_v is not None and abs(self._cache_v - v_ego) < 0.01:
+    if (self._cache_v is not None
+        and abs(self._cache_v - v_ego) < 0.01
+        and self._cache_cruise == self._v_cruise):
       return self._cache_min, self._cache_max
     self._cache_min, self._cache_max = self._step(v_ego)
     self._cache_v = v_ego
+    self._cache_cruise = self._v_cruise
     return self._cache_min, self._cache_max
 
   def get_min_accel(self, v_ego: float) -> float:
@@ -133,7 +191,8 @@ class AccelPersonalityController:
     self._accel_personality = new_p
     self.params.put('AccelPersonality', new_p)
     self.frame = 0
-    self._last_max = 2.0
-    self._last_min = -0.18
+    self._last_max = 1.80
+    self._last_min = -0.03
     self._cache_v = None
+    self._cache_cruise = None
     self.first_run = True

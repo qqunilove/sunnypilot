@@ -9,6 +9,7 @@ from openpilot.common.swaglog import cloudlog
 # WARNING: imports outside of constants will not trigger a rebuild
 from openpilot.selfdrive.modeld.constants import index_function
 from openpilot.selfdrive.controls.radard import _LEAD_ACCEL_TAU
+from openpilot.common.constants import CV
 
 if __name__ == '__main__':  # generating code
   from openpilot.third_party.acados.acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
@@ -80,8 +81,51 @@ def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
   else:
     raise NotImplementedError("Longitudinal personality not supported")
 
-def get_stopped_equivalence_factor(v_lead):
-  return (v_lead**2) / (2 * COMFORT_BRAKE)
+_LEAD_FACTOR_BP_KPH = [0.0, 2.0, 6.0]
+_LEAD_FACTOR_V      = [1.0, 0.7, 0.0]
+
+
+def _lead_taper(v_lead_kph: float) -> float:
+  return float(np.interp(v_lead_kph, _LEAD_FACTOR_BP_KPH, _LEAD_FACTOR_V))
+
+
+def get_stopped_equivalence_factor(
+  v_lead_raw,
+  v_ego_raw,
+  v_lead_dist_raw,
+  t_follow,
+  short_dist_factor=0.0,
+  long_dist_factor=0.0,
+  extra_stop_dist=0.0,
+  stop_dist_target=STOP_DISTANCE,
+):
+  long_dist_offset = 0
+  v_ego = np.mean(v_ego_raw)
+  v_ego_kph = v_ego * CV.MS_TO_KPH
+  v_lead = np.mean(v_lead_raw)
+  v_lead_kph = v_lead * CV.MS_TO_KPH
+  v_lead_dist = np.mean(v_lead_dist_raw)
+
+  dv = v_ego - v_lead
+  switch_pt = np.interp(v_ego_kph, [10.0, 120.0], [3.5, 0.9])
+  lead_time = v_lead_dist / max(v_ego, 1.0)
+
+  if dv > 0:
+    dist_mult = np.interp(lead_time, [switch_pt, 5.0], [0.0, 0.025])
+    v_lead_mult = np.interp(v_lead_kph, [20.0, 120.0], [0, 1.0])
+    long_dist_offset = v_lead_dist * dist_mult * min(dv, 14) * v_lead_mult
+    long_dist_offset = np.clip(long_dist_offset, 0, v_lead_dist) * long_dist_factor
+
+  short_time_offset = np.interp(lead_time, [t_follow - 0.3, switch_pt], [-0.8, 0.4])
+  short_time_offset *= np.interp(v_lead_kph, [0, 40.0], [0.4, 1.0])
+  short_dist_offset = short_time_offset * v_ego * short_dist_factor
+
+  taper = _lead_taper(v_lead_kph)
+  stop_offset = (STOP_DISTANCE + float(extra_stop_dist) - float(stop_dist_target)) * taper
+  kinetic_offset = (v_lead**2) / (2 * COMFORT_BRAKE) * taper
+
+  return kinetic_offset + long_dist_offset + short_dist_offset + stop_offset
+
 
 def get_safe_obstacle_distance(v_ego, t_follow):
   return (v_ego**2) / (2 * COMFORT_BRAKE) + t_follow * v_ego + STOP_DISTANCE
@@ -328,8 +372,8 @@ class LongitudinalMpc:
     # To estimate a safe distance from a moving lead, we calculate how much stopping
     # distance that lead needs as a minimum. We can add that to the current distance
     # and then treat that as a stopped car/obstacle at this new distance.
-    lead_0_obstacle = lead_xv_0[:,0] + get_stopped_equivalence_factor(lead_xv_0[:,1])
-    lead_1_obstacle = lead_xv_1[:,0] + get_stopped_equivalence_factor(lead_xv_1[:,1])
+    lead_0_obstacle = lead_xv_0[:,0] + get_stopped_equivalence_factor(lead_xv_0[:,1], v_ego, lead_xv_0[:,0], t_follow)
+    lead_1_obstacle = lead_xv_1[:,0] + get_stopped_equivalence_factor(lead_xv_1[:,1], v_ego, lead_xv_1[:,0], t_follow)
 
     # Fake an obstacle for cruise, this ensures smooth acceleration to set speed
     # when the leads are no factor.

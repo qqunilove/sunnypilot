@@ -82,7 +82,7 @@ def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
     raise NotImplementedError("Longitudinal personality not supported")
 
 _LEAD_FACTOR_BP_KPH = [0.0, 2.0, 6.0]
-_LEAD_FACTOR_V      = [1.0, 0.7, 0.0]
+_LEAD_FACTOR_V      = [1.0, 0.8, 0.3]
 
 
 def _lead_taper(v_lead_kph: float) -> float:

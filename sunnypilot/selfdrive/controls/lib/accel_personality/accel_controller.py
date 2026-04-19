@@ -29,18 +29,18 @@ JERK_ACCEL_V  = [1.20, 0.80, 0.50, 0.35]  # m/s³
 
 # Coast window: tighter at low speed (less creep), wider at highway (more coast).
 COAST_WINDOW_BP = [0.0, 10.0, 20.0, 35.0]  # m/s
-COAST_WINDOW_V  = [0.25, 0.45, 0.65, 1.00]  # m/s excess before braking starts
+COAST_WINDOW_V  = [0.30, 0.55, 0.85, 1.40]  # m/s excess before braking starts
 
 # Speed excess that maps to full brake authority (t=1).
 EXCESS_SCALE_BP = [0.0, 10.0, 20.0, 35.0]  # m/s
-EXCESS_SCALE_V  = [0.8,  1.8,  3.0,  4.5]  # m/s
+EXCESS_SCALE_V  = [1.0,  2.2,  4.0,  6.0]  # m/s
 
 FULL_BRAKE_FLOOR_BP = [0.0, 5.0, 10.0, 18.0, 28.0, 40.0]  # m/s
 
 FULL_BRAKE_FLOOR_V = {
-  AccelPersonality.eco:    [-0.10, -0.20,  -0.28, -0.38, -0.50, -0.60],
-  AccelPersonality.normal: [-0.12, -0.24,  -0.38, -0.52, -0.68, -0.82],
-  AccelPersonality.sport:  [-0.25, -0.45,  -0.62, -0.82, -1.05, -1.25],
+  AccelPersonality.eco:    [-0.08, -0.14, -0.20, -0.26, -0.32, -0.38],
+  AccelPersonality.normal: [-0.10, -0.18, -0.26, -0.34, -0.42, -0.50],
+  AccelPersonality.sport:  [-0.18, -0.32, -0.46, -0.60, -0.75, -0.90],
 }
 
 # Coast floor: a_min while v_ego is within the coast window

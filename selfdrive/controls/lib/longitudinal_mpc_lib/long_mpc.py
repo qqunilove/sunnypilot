@@ -81,19 +81,11 @@ def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
   else:
     raise NotImplementedError("Longitudinal personality not supported")
 
-_LEAD_FACTOR_BP_KPH = [0.0, 2.0, 6.0]
-_LEAD_FACTOR_V      = [1.0, 0.8, 0.3]
-
-
-def _lead_taper(v_lead_kph: float) -> float:
-  return float(np.interp(v_lead_kph, _LEAD_FACTOR_BP_KPH, _LEAD_FACTOR_V))
-
-
 def get_stopped_equivalence_factor(
   v_lead_raw,
-  v_ego_raw,
-  v_lead_dist_raw,
-  t_follow,
+  v_ego_raw=0.0,
+  v_lead_dist_raw=0.0,
+  t_follow=1.45,
   short_dist_factor=0.0,
   long_dist_factor=0.0,
   extra_stop_dist=0.0,
@@ -120,9 +112,8 @@ def get_stopped_equivalence_factor(
   short_time_offset *= np.interp(v_lead_kph, [0, 40.0], [0.4, 1.0])
   short_dist_offset = short_time_offset * v_ego * short_dist_factor
 
-  taper = _lead_taper(v_lead_kph)
-  stop_offset = (STOP_DISTANCE + float(extra_stop_dist) - float(stop_dist_target)) * taper
-  kinetic_offset = (v_lead**2) / (2 * COMFORT_BRAKE) * taper
+  stop_offset = STOP_DISTANCE + float(extra_stop_dist) - float(stop_dist_target)
+  kinetic_offset = (v_lead**2) / (2 * COMFORT_BRAKE)
 
   return kinetic_offset + long_dist_offset + short_dist_offset + stop_offset
 
